@@ -1,36 +1,19 @@
-# audio/synth.py
-import time
+# hal/pwm_driver.py
+from machine import Pin, PWM
 
-class Synth:
-    def __init__(self, pwm_driver, *, master_vol=0.6):
-        self.pwm = pwm_driver
-        self.master = master_vol
-        self.active = None  # track current note
+class PWMDriver:
+    def __init__(self, pin_num=16):
+        self.pin = Pin(pin_num)
+        self.pwm = PWM(self.pin)
+        self.pwm.deinit()  # idle
 
-    @staticmethod
-    def midi_to_hz(pitch: int) -> float:
-        return 440.0 * (2 ** ((pitch - 69) / 12))
+    def set_freq(self, hz: float):
+        hz = max(20, min(10000, int(hz)))  # clamp
+        self.pwm.freq(hz)
 
-    def note_on(self, pitch: int, velocity=1.0, duration_ms=None):
-        if pitch < 0 or pitch > 127:
-            raise ValueError("pitch out of range")
-        if not (0.0 <= velocity <= 1.0):
-            raise ValueError("velocity out of range")
+    def set_duty(self, duty_0_1: float):
+        duty_u16 = max(0, min(65535, int(duty_0_1 * 65535)))
+        self.pwm.duty_u16(duty_u16)
 
-        freq = self.midi_to_hz(pitch)
-        self.pwm.set_freq(freq)
-        self.pwm.set_duty(velocity * self.master)
-        self.active = pitch
-
-        if duration_ms:
-            time.sleep_ms(duration_ms)
-            self.note_off()
-
-    def note_off(self, pitch=None):
-        if pitch is None or pitch == self.active:
-            self.pwm.stop()
-            self.active = None
-
-    def all_notes_off(self):
-        self.pwm.stop()
-        self.active = None
+    def stop(self):
+        self.pwm.duty_u16(0)
