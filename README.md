@@ -18,13 +18,23 @@ using
 Other IDE can be used, including Visual Studio Code or
 [rshell](./doc/rshell.md).
 
+## Code structure
+
+- main.py: Includes the debouncing function and the infinite loop that runs as long as the pico is powered
+
+- hal/ (Hardware Abstraction Layer): It has the pwm_driver.py module  which just makes it easier to control the PWM pin on the pico. This separation means that if you were to switch to a different microcontroller, you would only need to rewrite this file, leaving the rest of the code untouched.
+
+- audio/: Has the synth.py module, which has some musical calculations that ended up not being used, as instead we implemented after testing in the maintest files.
+
+- maintest/: A few test files with jingles hard coded. We wrote this last using what we learned in the various above parts of the project to combine all the ideas (eg PWM, jingle functions, and reading off the photoresistor).
+
 ## Hardware
 
 * Raspberry Pi Pico WH [SC1634](https://pip.raspberrypi.com/categories/1088-raspberry-pi-pico-2-w) (WiFi, Bluetooth, with header pins)
 * Freenove Pico breakout board [FNK0081](https://store.freenove.com/products/fnk0081)
 * Piezo Buzzer SameSky CPT-3095C-300
 * 10k ohm resistor
-* 2 [tactile switches](hhttps://www.mouser.com/ProductDetail/E-Switch/TL59NF160Q?qs=QtyuwXswaQgJqDRR55vEFA%3D%3D)
+* 2 [tactile switches](https://www.mouser.com/ProductDetail/E-Switch/TL59NF160Q?qs=QtyuwXswaQgJqDRR55vEFA%3D%3D)
 
 ### Photoresistor details
 
@@ -69,6 +79,17 @@ For the question below, feel free to use musical scale of your choice!
 
 Pico MicroPython time.sleep() doesn't error for negative values even though such are obviously incorrect--it is undefined for a system to sleep for negative time.
 Duty cycle greater than 1 is undefined, so we clip the duty cycle to the range [0, 1].
+
+## Mode switching / debouncing
+
+We've added the skeleton for a mode switcher. This uses the concept of a "tap" that you can see in src/main.py:double_tap_debounce(). The only issue is it must be calibrated as a "tap" is defined as placing your finger over the photoresistor for .25 seconds twice in a row. We use a moment of darkness to count as a tap. The issue is the photoresistor needs to be in a stable enclosure or else it is hard to fully cover it with your finger.
+
+The goal is to work like this:
+
+- Mode 0 (Silent): Currently set to silent. The plan is to not be silent but instead use the working code in the maintest.py file to be based on light level. This way the toy can either play one of two songs (with no interaction) or play a song based on the light level. 
+- Mode 1 (Melody 1): Plays a specific sequence of notes.
+- Mode 2 (Melody 2): Plays a different sequence of notes.
+
 
 
 ## Reference
