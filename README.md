@@ -62,7 +62,7 @@ For the question below, feel free to use musical scale of your choice!
 [Music Examples](https://github.com/twisst/Music-for-Raspberry-Pi-Pico/blob/main/play.py)
 
 
-## Diagram
+## Design
 ![Diagram](https://github.com/user-attachments/assets/ff0c55a3-db11-47df-99e4-ec8ec10169e6)
 
 ## Notes
