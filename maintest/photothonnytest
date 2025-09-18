@@ -1,0 +1,49 @@
+# phototest_min.py — quick ambient light test (Raspberry Pi Pico, MicroPython)
+# Wiring: LDR + 10k divider to GP28 (ADC2). Onboard LED used as change indicator.
+
+from machine import ADC, Pin
+import time
+
+ADC_PIN = 28           # GP28 = ADC2
+VREF = 3.3             # Pico 3V3 reference
+LED  = Pin("LED", Pin.OUT)
+
+adc = ADC(ADC_PIN)
+
+# Simple fast/slow EMA to detect quick changes relative to ambient baseline
+FAST_ALPHA = 0.3
+SLOW_ALPHA = 0.01
+THRESHOLD  = 0.05      # trigger when fast - slow > 5% (tune 0.03–0.10)
+DEBOUNCE_MS = 250
+
+fast = slow = None
+last_evt = 0
+
+def read_norm():
+    raw = adc.read_u16()              # 0..65535
+    volt = VREF * raw / 65535.0
+    norm = raw / 65535.0
+    return raw, volt, norm
+
+print("Phototest: cover/uncover the sensor or shine a light.")
+print("Columns: raw | volts | norm | delta (fast-slow)\n")
+
+while True:
+    now = time.ticks_ms()
+    raw, v, n = read_norm()
+
+    if fast is None:
+        fast = slow = n
+    else:
+        fast = FAST_ALPHA * n + (1 - FAST_ALPHA) * fast
+        slow = SLOW_ALPHA * n + (1 - SLOW_ALPHA) * slow
+
+    delta = fast - slow
+    print(f"{raw:5d} | {v:1.3f} V | {n:1.3f} | {delta:+1.3f}")
+
+    # Blink LED on quick light increase
+    if delta > THRESHOLD and time.ticks_diff(now, last_evt) > DEBOUNCE_MS:
+        last_evt = now
+        LED.on(); time.sleep_ms(100); LED.off()
+
+    time.sleep_ms(50)  # ~20 Hz loop
